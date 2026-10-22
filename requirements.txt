@@ -3,3 +3,4 @@
 # por lo que la solucion no requiere librerias adicionales en el cluster.
 # Este archivo documenta las versiones contra las que se desarrollo y probo localmente.
 pyspark==4.0.1
+# Python soportado: 3.10 - 3.12 (PySpark 4.0 no soporta aún 3.14)
