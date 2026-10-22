@@ -1,0 +1,58 @@
+# Integración continua: se ejecuta en cada Pull Request y push hacia dll / feature/*.
+# Controles previos obligatorios para fusionar (configurar como "required checks" en la protección de rama dll).
+name: ci
+
+on:
+  pull_request:
+    branches: [dll]
+  push:
+    branches: [dll, "feature/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  calidad-codigo-y-pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - uses: actions/setup-java@v4       # PySpark local necesita JVM
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Instalar dependencias versionadas
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check src tests scripts
+
+      - name: Pruebas unitarias e integración en memoria (pytest)
+        run: pytest -v
+
+      - name: Validar que no se versionen datos ni secretos
+        run: |
+          if git ls-files | grep -E '\.(csv|parquet)$|\.env$|databrickscfg'; then
+            echo "Se encontraron datos crudos o secretos versionados"; exit 1; fi
+
+  validar-bundle:
+    runs-on: ubuntu-latest
+    needs: calidad-codigo-y-pruebas
+    # Requiere los secretos DATABRICKS_HOST / DATABRICKS_TOKEN (o OIDC) del environment dev.
+    if: ${{ vars.DATABRICKS_HABILITADO == 'true' }}
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@v0.250.0
+      - name: databricks bundle validate
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle validate -t dev
