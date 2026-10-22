@@ -1,0 +1,42 @@
+# Entornos y caches de Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Datos crudos, checkpoints y artefactos temporales (NO se versionan)
+data/
+*.csv
+*.parquet
+*.zip
+_checkpoints/
+checkpoints/
+spark-warehouse/
+metastore_db/
+derby.log
+tmp/
+local_lakehouse/
+
+# Databricks / bundles
+.databricks/
+.bundle/
+
+# Secretos y configuracion local
+.env
+*.env
+.databrickscfg
+secrets*.json
+*.pem
+*.key
+
+# Sistema operativo / IDE
+.DS_Store
+__MACOSX/
+Thumbs.db
+.vscode/
+.idea/

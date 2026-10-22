@@ -1,0 +1,5 @@
+# Dependencias de ejecucion.
+# En Databricks (serverless / Free Edition) PySpark y Delta Lake ya vienen en el runtime,
+# por lo que la solucion no requiere librerias adicionales en el cluster.
+# Este archivo documenta las versiones contra las que se desarrollo y probo localmente.
+pyspark==4.0.1

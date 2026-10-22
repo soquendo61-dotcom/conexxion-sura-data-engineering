@@ -1,0 +1,21 @@
+[project]
+name = "conexxion-sura-data-engineering"
+version = "1.0.0"
+description = "Solucion de ingenieria de datos end-to-end (Medallion) para polizas y siniestros sobre Databricks + Unity Catalog"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+src = ["src", "tests"]
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"]

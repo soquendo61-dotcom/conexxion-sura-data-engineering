@@ -1,0 +1,4 @@
+# Dependencias de desarrollo, pruebas y CI
+-r requirements.txt
+pytest==8.4.2
+ruff==0.13.3
