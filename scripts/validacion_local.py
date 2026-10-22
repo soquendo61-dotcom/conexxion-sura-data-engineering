@@ -25,7 +25,6 @@ from common.config import PipelineConfig  # noqa: E402
 from contracts.definitions import ORDEN_PROCESAMIENTO  # noqa: E402
 from ingestion.bronze import ArchivoFuente, agregar_metadatos, leer_archivo  # noqa: E402
 from quality import engine  # noqa: E402
-
 from transformations.silver import construir_silver, reconciliar_bronze_silver  # noqa: E402
 
 

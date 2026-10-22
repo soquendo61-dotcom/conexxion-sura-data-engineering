@@ -63,7 +63,12 @@ def aplicar_contrato(df: DataFrame, contrato: ContratoDataset) -> DataFrame:
     proteger a los consumidores de cambios de esquema no acordados.
     """
     for origen, destino in contrato.mapa_alias.items():
-        if origen in df.columns and destino not in df.columns:
+        if origen not in df.columns:
+            continue
+        if destino in df.columns:
+            # Archivos con esquema viejo y nuevo en el mismo lote: cada fila trae uno de los dos.
+            df = df.withColumn(destino, F.coalesce(F.col(destino), F.col(origen))).drop(origen)
+        else:
             df = df.withColumnRenamed(origen, destino)
     for c in contrato.nombres:
         if c not in df.columns:
