@@ -1,0 +1,98 @@
+# Workflow (Lakeflow Job) del pipeline de pólizas y siniestros.
+# Programación: día 5 de cada mes, 06:00 a. m. hora Colombia (America/Bogota, UTC-5, sin horario de verano).
+# Todas las tareas usan cómputo serverless (no requiere definir clusters en Free Edition).
+resources:
+  jobs:
+    pipeline_polizas_siniestros:
+      name: "[${var.ambiente}] pipeline_polizas_siniestros"
+      description: >
+        Ingesta mensual de clientes, pólizas, recaudos, siniestros y movimientos (Medallion Bronze/Silver/Gold),
+        reglas de calidad, cuarentena, reconciliación, publicación certificada y gobierno Unity Catalog.
+
+      schedule:
+        quartz_cron_expression: "0 0 6 5 * ?"
+        timezone_id: "America/Bogota"
+        pause_status: ${var.estado_programacion}
+
+      max_concurrent_runs: 1          # evita ejecuciones solapadas sobre el mismo corte
+      timeout_seconds: 10800          # 3 h: ventana máxima antes del SLA (09:00 COT)
+
+      health:
+        rules:
+          - metric: RUN_DURATION_SECONDS
+            op: GREATER_THAN
+            value: 3600               # alerta temprana si supera 1 h (normal: minutos)
+
+      email_notifications:
+        on_failure: ["${var.correo_alertas}"]
+        on_duration_warning_threshold_exceeded: ["${var.correo_alertas}"]
+      notification_settings:
+        no_alert_for_skipped_runs: true
+
+      parameters:
+        - name: fecha_corte           # vacío = cierre del mes anterior (calculado en código)
+          default: ""
+        - name: modo                  # incremental | reproceso (backfill de un periodo)
+          default: incremental
+        - name: ambiente
+          default: ${var.ambiente}
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: volume
+          default: ${var.volume}
+        - name: run_id                # mismo identificador de ejecución para todas las tareas
+          default: "{{job.run_id}}"
+        - name: job_id
+          default: "{{job.id}}"
+
+      tasks:
+        - task_key: bronze
+          description: Ingesta idempotente de archivos del volumen a Bronze con metadatos y control de contrato
+          notebook_task:
+            notebook_path: ../../notebooks/01_bronze.py
+          max_retries: 2
+          min_retry_interval_millis: 300000
+          retry_on_timeout: true
+          timeout_seconds: 1800
+
+        - task_key: silver
+          description: Estandarización, deduplicación, reglas de calidad, cuarentena y reconciliación Bronze-Silver
+          depends_on:
+            - task_key: bronze
+          notebook_task:
+            notebook_path: ../../notebooks/02_silver.py
+          max_retries: 1              # un fallo por regla BLOQUEO es determinístico; el reintento cubre fallos transitorios
+          min_retry_interval_millis: 300000
+          timeout_seconds: 2700
+
+        - task_key: gold
+          description: Productos de datos gold_poliza_360, gold_siniestralidad_mensual y gold_discrepancias
+          depends_on:
+            - task_key: silver
+          notebook_task:
+            notebook_path: ../../notebooks/03_gold.py
+          max_retries: 2
+          min_retry_interval_millis: 300000
+          timeout_seconds: 1800
+
+        - task_key: validar_publicar
+          description: Reconciliación Silver-Gold, postcondiciones, frescura y publicación del corte certificado
+          depends_on:
+            - task_key: gold
+          notebook_task:
+            notebook_path: ../../notebooks/04_validar_publicar.py
+          max_retries: 1
+          min_retry_interval_millis: 120000
+          timeout_seconds: 1200
+
+        - task_key: gobierno_y_vistas
+          description: Vistas certificadas y de observabilidad, máscaras PII, tags y permisos en Unity Catalog
+          depends_on:
+            - task_key: validar_publicar
+          notebook_task:
+            notebook_path: ../../notebooks/05_gobierno_y_vistas.py
+          max_retries: 2
+          min_retry_interval_millis: 60000
+          timeout_seconds: 900
