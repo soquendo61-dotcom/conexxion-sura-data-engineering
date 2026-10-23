@@ -47,6 +47,20 @@ ALTER TABLE ${catalog}.${schema}.silver_clientes_historia ALTER COLUMN numero_do
 ALTER TABLE ${catalog}.${schema}.silver_clientes_historia ALTER COLUMN correo SET MASK ${catalog}.${schema}.fn_mask_correo;
 ALTER TABLE ${catalog}.${schema}.silver_clientes_historia ALTER COLUMN telefono SET MASK ${catalog}.${schema}.fn_mask_telefono;
 
+-- Vista con PII enmascarada (alternativa portable a las mascaras de columna). Se crea aqui porque
+-- depende de las funciones fn_mask_* definidas arriba.
+CREATE OR REPLACE VIEW ${catalog}.${schema}.vw_clientes_protegida
+COMMENT 'Clientes con PII enmascarada por vista (alternativa portable a las mascaras de columna)'
+AS
+SELECT cliente_id, tipo_documento,
+       ${catalog}.${schema}.fn_mask_documento(numero_documento) AS numero_documento,
+       ${catalog}.${schema}.fn_mask_fecha_nacimiento(fecha_nacimiento) AS fecha_nacimiento,
+       ciudad, segmento,
+       ${catalog}.${schema}.fn_mask_correo(correo) AS correo,
+       ${catalog}.${schema}.fn_mask_telefono(telefono) AS telefono,
+       fecha_actualizacion, _dq_advertencias
+FROM ${catalog}.${schema}.silver_clientes;
+
 -- ---------------------------------------------------------------- 3. Clasificacion (tags)
 ALTER TABLE ${catalog}.${schema}.silver_clientes ALTER COLUMN numero_documento SET TAGS ('clasificacion' = 'PII_ALTA');
 ALTER TABLE ${catalog}.${schema}.silver_clientes ALTER COLUMN correo SET TAGS ('clasificacion' = 'PII_ALTA');

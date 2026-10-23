@@ -34,15 +34,3 @@ JOIN (SELECT fecha_corte, run_id
       WHERE estado = 'PUBLICADO'
       ORDER BY fecha_corte DESC LIMIT 1) pub
   ON s.fecha_corte = pub.fecha_corte;
-
-CREATE OR REPLACE VIEW ${catalog}.${schema}.vw_clientes_protegida
-COMMENT 'Clientes con PII enmascarada por vista (alternativa portable a las mascaras de columna)'
-AS
-SELECT cliente_id, tipo_documento,
-       ${catalog}.${schema}.fn_mask_documento(numero_documento) AS numero_documento,
-       ${catalog}.${schema}.fn_mask_fecha_nacimiento(fecha_nacimiento) AS fecha_nacimiento,
-       ciudad, segmento,
-       ${catalog}.${schema}.fn_mask_correo(correo) AS correo,
-       ${catalog}.${schema}.fn_mask_telefono(telefono) AS telefono,
-       fecha_actualizacion, _dq_advertencias
-FROM ${catalog}.${schema}.silver_clientes;
