@@ -31,7 +31,7 @@
 | Concepto | Dónde se evidencia en el repositorio |
 |---|---|
 | Bronze fiel + metadatos (1) | `src/ingestion/bronze.py`: columnas como texto + `_source_file`, `_file_hash`, `_run_id`, `_fecha_corte`, `_row_hash` |
-| Delta ACID / time travel (2) | Todas las tablas son Delta administradas en Unity Catalog; `DESCRIBE HISTORY` en `notebooks/06_trazabilidad` |
+| Delta ACID / time travel (2) | Todas las tablas son Delta administradas en Unity Catalog; `DESCRIBE HISTORY` en `notebooks/08_trazabilidad` |
 | Watermark (3) | `ctl_archivos` (hash de archivo) + `ctl_watermarks`; diseño CDC en `docs/03_arquitectura.md` |
 | Lazy vs. acción (4) | Transformaciones encadenadas y una sola acción de escritura por tabla; sin `collect()` de datasets |
 | Idempotencia (5) | `replaceWhere` por `_file_hash` (Bronze), `MERGE` por clave (Silver), `replaceWhere` por `fecha_corte` (Gold) |
@@ -43,5 +43,5 @@
 | Data contracts (11) | `src/contracts/definitions.py` + validación de esquema en Bronze/Silver |
 | Pruning (12) | Liquid clustering por `fecha_corte` en Gold, filtros por periodo |
 | Secretos (13) | La solución no usa secretos; diseño con Databricks Secret Scopes / Azure Key Vault |
-| Frescura (14) | `vw_observabilidad_frescura_sla` |
+| Frescura (14) | `vw_obs_frescura_sla` |
 | Promoción (15) | `.github/workflows/` + `databricks.yml` (targets dev/qa/prod) |
