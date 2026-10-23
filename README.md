@@ -42,6 +42,7 @@ seguridad de datos personales y CI/CD.
 7. [Decisiones, supuestos y deuda técnica](docs/07_decisiones_supuestos_deuda.md)
 8. [Opcionales: tiempo casi real e IA generativa](docs/08_opcionales_streaming_ia.md)
 9. [Guía de reproducción en 10 minutos](docs/09_guia_reproduccion_10min.md)
+10. [Evidencias de ejecución y última ejecución exitosa](docs/10_evidencias_ejecucion.md)
 
 ## Ejecución rápida en Databricks
 
