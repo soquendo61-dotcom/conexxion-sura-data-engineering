@@ -93,6 +93,7 @@ Ver [docs/architecture/diagrama_arquitectura.md](architecture/diagrama_arquitect
   - PII media: fecha de nacimiento y referencia bancaria.
 
   Está declarada en los contratos y en tags de Unity Catalog.
+
 - **Protección:**
   - Máscaras de columna (`fn_mask_*`) en `silver_clientes`: solo el grupo `pii_lectores` ve el dato real. La vista `vw_clientes_protegida` es la alternativa portable.
   - Bronze y cuarentena (que contiene el registro original) tienen acceso restringido a ingeniería y data stewards.
