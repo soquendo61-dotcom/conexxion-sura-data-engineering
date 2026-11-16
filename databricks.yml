@@ -1,0 +1,69 @@
+# Databricks Asset Bundle: empaqueta código, notebooks y definición del job como un artefacto
+# versionado que se promueve sin cambios entre ambientes (DEV -> QA -> PROD).
+# Uso: databricks bundle validate -t dev | databricks bundle deploy -t dev | databricks bundle run -t dev pipeline_polizas_siniestros
+bundle:
+  name: conexxion_sura_data_engineering
+
+include:
+  - resources/jobs/*.yml
+
+variables:
+  ambiente:
+    description: Ambiente lógico (dev | qa | prod)
+    default: dev
+  catalog:
+    description: Catálogo de Unity Catalog del ambiente
+    default: workspace
+  schema:
+    description: Schema de Unity Catalog
+    default: default
+  volume:
+    description: Volumen de aterrizaje de archivos
+    default: volume1
+  correo_alertas:
+    description: Buzón del equipo de datos que recibe alertas del job
+    default: equipo-datos@example.com
+  estado_programacion:
+    description: UNPAUSED en ambientes con ejecución programada
+    default: UNPAUSED
+
+targets:
+  # Free Edition: único ambiente real de la prueba (catálogo workspace, schema default).
+  dev:
+    mode: development
+    default: true
+    variables:
+      ambiente: dev
+      estado_programacion: UNPAUSED
+
+  # Arquitectura objetivo corporativa (referencia): workspace y catálogo aislados por ambiente.
+  qa:
+    mode: production
+    workspace:
+      host: https://adb-qa.example.azuredatabricks.net
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/qa
+    variables:
+      ambiente: qa
+      catalog: qa_seguros
+      schema: polizas_siniestros
+      estado_programacion: PAUSED      # QA se ejecuta bajo demanda desde el pipeline de CD
+    run_as:
+      service_principal_name: sp-datos-qa
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-prod.example.azuredatabricks.net
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/prod
+    variables:
+      ambiente: prod
+      catalog: prod_seguros
+      schema: polizas_siniestros
+      correo_alertas: oncall-datos@example.com
+    run_as:
+      service_principal_name: sp-datos-prod
+    permissions:
+      - group_name: data_engineers
+        level: CAN_VIEW
+      - group_name: data_platform_ops
+        level: CAN_MANAGE_RUN

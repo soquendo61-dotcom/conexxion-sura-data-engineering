@@ -1,0 +1,60 @@
+# Entrega continua: promueve EL MISMO artefacto versionado (commit/tag del bundle) DEV -> QA -> PROD.
+# - DEV: despliegue automático al fusionar en dll.
+# - QA: despliegue + ejecución de pruebas de integración sobre datos de QA.
+# - PROD: requiere aprobación manual (GitHub Environment "prod" con revisores obligatorios) y un tag vX.Y.Z.
+# Rollback: volver a desplegar el tag anterior (databricks bundle deploy -t prod sobre ese commit);
+# los datos se recuperan con Delta time travel (RESTORE TABLE ... TO VERSION AS OF n) si fuera necesario.
+# Las credenciales viven en GitHub Environments (preferible OIDC / service principal), nunca en el repositorio.
+name: cd
+
+on:
+  push:
+    branches: [dll]
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  desplegar-dev:
+    if: ${{ vars.DATABRICKS_HABILITADO == 'true' && github.ref == 'refs/heads/dll' }}
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@v0.250.0
+      - run: databricks bundle deploy -t dev
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+  desplegar-qa:
+    if: ${{ vars.DATABRICKS_HABILITADO == 'true' && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    environment: qa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@v0.250.0
+      - name: Desplegar y ejecutar en QA (pruebas de integración / postcondiciones)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+        run: |
+          databricks bundle deploy -t qa
+          databricks bundle run -t qa pipeline_polizas_siniestros
+
+  desplegar-prod:
+    needs: desplegar-qa
+    runs-on: ubuntu-latest
+    environment: prod        # protección: revisores obligatorios + solo tags
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@v0.250.0
+      - run: databricks bundle deploy -t prod
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
